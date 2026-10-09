@@ -11,7 +11,7 @@ result = graph.invoke({
 
 
 print(
-    result["technical_analysis"]
+    result["analyses"]
 )
 
 print(

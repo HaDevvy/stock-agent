@@ -1,0 +1,16 @@
+nodes:
+  technical:
+    handler: stock_agent.agents.technical:technical_agent
+
+  decision:
+    handler: stock_agent.agents.decision:decision_agent
+
+edges:
+  - from: START
+    to: technical
+
+  - from: technical
+    to: decision
+
+  - from: decision
+    to: END

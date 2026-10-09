@@ -9,3 +9,5 @@ sqlalchemy==2.1.2
 psycopg[binary]==3.3.6
 
 pandas==3.0.6
+
+PyYAML==6.0.3

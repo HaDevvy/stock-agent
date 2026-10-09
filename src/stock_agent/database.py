@@ -19,11 +19,26 @@ def get_price_data(
             low,
             close,
             volume
-        FROM closing_prices
-        WHERE ins_code = (select ins_code from instruments where symbol = :symbol) and adjusted_type = 2
-        AND date <= :data_until
-        ORDER BY date DESC
-        LIMIT :limit
+        FROM (
+            SELECT
+                date,
+                open,
+                high,
+                low,
+                close,
+                volume
+            FROM closing_prices
+            WHERE ins_code = (
+                SELECT ins_code
+                FROM instruments
+                WHERE symbol = :symbol
+            )
+            AND adjusted_type = 2
+            AND date <= :data_until
+            ORDER BY date DESC
+            LIMIT :limit
+        ) AS recent_prices
+        ORDER BY date ASC
     """)
 
     with engine.connect() as conn:
@@ -36,4 +51,7 @@ def get_price_data(
             },
         )
 
-        return result.mappings().all()
+        return [
+            dict(row)
+            for row in result.mappings().all()
+        ]

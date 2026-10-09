@@ -1,11 +1,13 @@
+from ..config import settings
 from ..database import get_price_data
+from ..indicators import calculate_technical_indicators
 from ..llm import llm
-from ..schemas import TechnicalAnalysis
+from ..schemas import AgentAnalysis
 from ..state import AgentState
 
 
 technical_llm = llm.with_structured_output(
-    TechnicalAnalysis
+    AgentAnalysis
 )
 
 
@@ -15,32 +17,56 @@ def technical_agent(
     prices = get_price_data(
         symbol=state["symbol"],
         data_until=state["data_until"],
+        limit=settings.technical_lookback_days,
     )
+
+    indicators = calculate_technical_indicators(
+        prices
+    )
+
+    recent_prices = prices[-10:]
 
     prompt = f"""
     You are a technical stock market analyst.
 
-    Analyze the following price data.
-
     Symbol:
     {state["symbol"]}
 
-    Historical data:
-    {prices}
+    Data available until:
+    {state["data_until"]}
 
-    Analyze:
+    Technical indicators:
+    {indicators}
+    
+    Recent price candles:
+    {recent_prices}
+    
+    Analyze the stock based on the provided
+    technical indicators and recent price behavior.
+    
+    Consider:
+    
     - trend
     - momentum
     - volatility
-    - support/resistance
-    - volume
+    - RSI condition
+    - MACD condition
+    - moving averages
+    - volume behavior
+    - distance from recent high/low
     - possible continuation or reversal
-
-    Return a structured technical analysis.
+    
+    Do NOT calculate indicators yourself.
+    The provided indicator values are already calculated.
+    
+    Return a structured analysis.
     """
 
     analysis = technical_llm.invoke(prompt)
 
+    analysis.agent = "technical"
+
     return {
-        "technical_analysis": analysis
+        "technical_indicators": indicators,
+        "analyses": [analysis],
     }

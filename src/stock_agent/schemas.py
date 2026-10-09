@@ -3,7 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class TechnicalAnalysis(BaseModel):
+class AgentAnalysis(BaseModel):
+    agent: str
+
     signal: Literal[
         "bullish",
         "neutral",

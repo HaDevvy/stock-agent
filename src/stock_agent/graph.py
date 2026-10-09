@@ -1,41 +1,87 @@
+from pathlib import Path
+
 from langgraph.graph import (
-    StateGraph,
-    START,
     END,
+    START,
+    StateGraph,
 )
 
+from .graph_loader import (
+    load_graph_config,
+    load_handler,
+)
 from .state import AgentState
-from .agents.technical import technical_agent
-from .agents.decision import decision_agent
 
 
-def build_graph():
+def resolve_node_name(
+    node_name: str,
+):
+    if node_name == "START":
+        return START
 
-    builder = StateGraph(AgentState)
+    if node_name == "END":
+        return END
 
-    builder.add_node(
-        "technical",
-        technical_agent,
+    return node_name
+
+
+def build_graph(
+    config_path: str | Path | None = None,
+):
+    config = load_graph_config(
+        config_path
     )
 
-    builder.add_node(
-        "decision",
-        decision_agent,
+    builder = StateGraph(
+        AgentState
     )
 
-    builder.add_edge(
-        START,
-        "technical",
-    )
+    # -------------------------
+    # Nodes
+    # -------------------------
 
-    builder.add_edge(
-        "technical",
-        "decision",
-    )
+    for (
+        node_name,
+        node_config,
+    ) in config["nodes"].items():
 
-    builder.add_edge(
-        "decision",
-        END,
-    )
+        handler = load_handler(
+            node_config["handler"]
+        )
+
+        builder.add_node(
+            node_name,
+            handler,
+        )
+
+    # -------------------------
+    # Edges
+    # -------------------------
+
+    for edge in config["edges"]:
+
+        source = edge["from"]
+        target = edge["to"]
+
+        if isinstance(source, list):
+
+            source = [
+                resolve_node_name(item)
+                for item in source
+            ]
+
+        else:
+            source = resolve_node_name(
+                source
+            )
+
+        target = resolve_node_name(
+            target
+        )
+
+        builder.add_edge(
+            source,
+            target,
+        )
 
     return builder.compile()
