@@ -6,9 +6,12 @@ config:
 graph TD;
 	__start__([<p>__start__</p>]):::first
 	technical(technical)
+	flow(flow)
 	decision(decision)
 	__end__([<p>__end__</p>]):::last
+	__start__ --> flow;
 	__start__ --> technical;
+	flow --> decision;
 	technical --> decision;
 	decision --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2

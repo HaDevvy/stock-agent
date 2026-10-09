@@ -1,5 +1,5 @@
 from .graph import build_graph
-
+from pprint import pprint
 
 graph = build_graph()
 
@@ -10,10 +10,11 @@ result = graph.invoke({
 })
 
 
-print(
-    result["analyses"]
-)
+for analysis in result["analyses"]:
+    pprint(
+        analysis
+    )
 
-print(
+pprint(
     result["decision"]
 )
