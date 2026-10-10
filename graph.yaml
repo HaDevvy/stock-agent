@@ -9,6 +9,9 @@ nodes:
   decision:
     handler: stock_agent.agents.decision:decision_agent
 
+  codal:
+    handler: stock_agent.agents.codal:codal_agent
+
 
 edges:
 
@@ -18,9 +21,13 @@ edges:
   - from: START
     to: flow
 
+  - from: START
+    to: codal
+
   - from:
       - technical
       - flow
+      - codal
     to: decision
 
   - from: decision

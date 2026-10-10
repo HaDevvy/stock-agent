@@ -116,3 +116,48 @@ def get_flow_data(
             dict(row)
             for row in rows
         ]
+    
+
+def get_codal_data(
+    symbol: str,
+    data_until: str,
+    limit: int = 30,
+):
+    query = text("""
+        SELECT
+            l.symbol as symbol,
+            l.company_name as company_name,
+            l.publish_date_time_gregorian as date,
+            f.has_excel as has_excel,
+            f.excel_status as excel_status,
+            f.path as path,
+            l.tracing_no as tracing_no
+    
+        FROM letters l
+            LEFT JOIN files f ON l.tracing_no = f.tracing_no
+    
+        WHERE 
+            l.symbol = :symbol AND
+            l.publish_date_time_gregorian <= :data_until
+    
+        ORDER BY l.publish_date_time_gregorian DESC
+    
+        LIMIT :limit;
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            query,
+            {
+                "symbol": symbol,
+                "data_until": data_until,
+                "limit": limit,
+            },
+        )
+
+        rows = result.mappings().all()
+
+        return [
+            dict(row)
+            for row in rows
+        ]

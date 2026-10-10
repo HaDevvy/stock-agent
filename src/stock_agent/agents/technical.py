@@ -67,6 +67,5 @@ def technical_agent(
     analysis.agent = "technical"
 
     return {
-        "technical_indicators": indicators,
         "analyses": [analysis],
     }

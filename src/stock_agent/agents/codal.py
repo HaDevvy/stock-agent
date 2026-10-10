@@ -1,0 +1,113 @@
+import json
+
+from ..database import get_codal_data
+from ..codal_file_manager import read_codal_data
+from ..llm import llm
+from ..schemas import AgentAnalysis
+from ..state import AgentState
+
+
+codal_llm = llm.with_structured_output(AgentAnalysis)
+
+
+def codal_agent(state: AgentState):
+    rows = get_codal_data(
+        symbol=state["symbol"],
+        data_until=state["data_until"],
+        limit=1,
+    )
+
+    codal_reports = []
+
+    for row in rows:
+        data = read_codal_data(row["path"])
+
+        codal_reports.append({
+            "tracing_no": row["tracing_no"],
+            "date": row["date"],
+            "company_name": row["company_name"],
+            "financial_data": data,
+        })
+
+    prompt = f"""
+    You are a senior fundamental analyst specializing
+    in companies listed on the Iranian stock market.
+
+    Your task is to evaluate the fundamental outlook
+    of the company based on financial and operational
+    data extracted from official CODAL Excel reports.
+
+    Symbol: {state["symbol"]}
+
+    Data available until: {state["data_until"]}
+
+    CODAL financial reports:
+
+    {json.dumps(
+        codal_reports,
+        ensure_ascii=False,
+        indent=2,
+        default=str,
+    )}
+
+    IMPORTANT DATA RULES:
+
+    - The primary source of fundamental information
+    is the financial_data field.
+
+    - Each report contains its publication date
+    and the corresponding extracted Excel data.
+
+    - Analyze financial and operational performance
+    based on actual reported values.
+
+    - Compare periods only when comparable data
+    is available.
+
+    - Consider sales growth, production performance,
+    revenue, profitability, margins, costs,
+    and financial stability when supported by data.
+
+    - Distinguish absolute growth from percentage growth.
+
+    - Pay attention to financial units, reporting
+    periods, and differences between monthly,
+    quarterly, and annual reports.
+
+    - Do not assume that every Excel file contains
+    the same financial metrics.
+
+    - Do not confuse cumulative figures with
+    single-period figures.
+
+    - Do not double-count overlapping financial periods.
+
+    - Do not invent missing financial information.
+
+    - Give more weight to consistent multi-period
+    fundamental improvements than isolated changes.
+
+    - Never assume that improving revenue
+    automatically means improving profitability.
+
+    - A positive fundamental assessment does not
+    necessarily imply an immediate stock price rise.
+
+    Determine:
+
+    signal: bullish / neutral / bearish
+    score: -1 to +1
+    confidence: 0 to 1
+    summary: concise Persian fundamental assessment
+    reasons: most important supporting evidence in Persian
+
+    Return output matching the AgentAnalysis schema.
+    """
+
+    analysis = codal_llm.invoke(prompt)
+
+    analysis.agent = "codal"
+
+    return {
+        "analyses": [analysis]
+    }

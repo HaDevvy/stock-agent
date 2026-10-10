@@ -61,9 +61,9 @@ def flow_agent(
     
     Analyze the following factors:
     
-    1. Individual buyer power versus seller power.
+    1. real buyer power versus seller power.
     
-    2. Individual investor money flow.
+    2. real investor money flow.
     
     3. Institutional/legal investor behavior.
     

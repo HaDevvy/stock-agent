@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     database_url: str
 
     # -------------------------
+    # CODAL Data
+    # -------------------------
+    codal_data_source_path: str
+
+    # -------------------------
     # 9Router / LLM
     # -------------------------
     nine_router_api_key: str
