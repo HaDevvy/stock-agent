@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from io import StringIO
 import logging
@@ -9,6 +10,110 @@ from .config import settings
 
 
 logger = logging.getLogger(__name__)
+
+import re
+
+
+CHAR_TRANSLATION = str.maketrans({
+    # Persian digits
+    "۰": "0", "۱": "1", "۲": "2", "۳": "3", "۴": "4",
+    "۵": "5", "۶": "6", "۷": "7", "۸": "8", "۹": "9",
+
+    # Arabic digits
+    "٠": "0", "١": "1", "٢": "2", "٣": "3", "٤": "4",
+    "٥": "5", "٦": "6", "٧": "7", "٨": "8", "٩": "9",
+
+    # Punctuation
+    "،": ",",
+    "؛": ";",
+    "؟": "?",
+    "٪": "%",
+    "٫": ".",
+    "٬": ",",
+    "−": "-",
+})
+
+
+def normalize_text(value: str) -> str:
+    value = value.translate(CHAR_TRANSLATION)
+
+    # Convert accounting negative numbers: (123) -> -123
+    match = re.fullmatch(
+        r"\(\s*([\d,]+(?:\.\d+)?)\s*\)",
+        value.strip(),
+    )
+
+    if match:
+        return f"-{match.group(1)}"
+
+    return value
+
+
+def normalize_data(data):
+    if isinstance(data, str):
+        return normalize_text(data)
+
+    if isinstance(data, dict):
+        return {
+            normalize_text(key) if isinstance(key, str) else key:
+            normalize_data(value)
+            for key, value in data.items()
+        }
+
+    if isinstance(data, (list, tuple)):
+        return [normalize_data(item) for item in data]
+
+    return data
+
+
+def compact_for_llm(sections):
+    compact = []
+
+    for section in sections:
+        item = {
+            "file": Path(section["file_path"]).name,
+            "sheet": section["sheet"],
+            "type": section["type"],
+            "unit": section["unit"],
+        }
+
+        data = section["data"]
+
+        if section["type"] == "notes":
+            item["notes"] = [
+                row["text"]
+                for row in data
+                if row.get("text")
+            ]
+
+        elif section["type"] == "table":
+            if not data:
+                continue
+
+            columns = list(dict.fromkeys(
+                key
+                for row in data
+                for key in row
+            ))
+
+            item["columns"] = columns
+
+            item["rows"] = [
+                [row.get(col) for col in columns]
+                for row in data
+            ]
+
+        compact.append(item)
+
+    # Normalize Persian/Arabic digits and punctuation
+    compact = normalize_data(compact)
+
+    return json.dumps(
+        compact,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        default=str,
+    )
 
 
 def dataframe_to_records(df):
@@ -297,3 +402,4 @@ def read_codal_data(file_path: str):
             )
 
     return results
+

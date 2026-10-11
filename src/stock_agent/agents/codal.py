@@ -1,7 +1,7 @@
 import json
 
 from ..database import get_codal_data
-from ..codal_file_manager import read_codal_data
+from ..codal_file_manager import compact_for_llm, read_codal_data
 from ..llm import llm
 from ..schemas import AgentAnalysis
 from ..state import AgentState
@@ -14,7 +14,7 @@ def codal_agent(state: AgentState):
     rows = get_codal_data(
         symbol=state["symbol"],
         data_until=state["data_until"],
-        limit=1,
+        limit=2,
     )
 
     codal_reports = []
@@ -22,11 +22,13 @@ def codal_agent(state: AgentState):
     for row in rows:
         data = read_codal_data(row["path"])
 
+        compressed_data = compact_for_llm(data)
+
         codal_reports.append({
             "tracing_no": row["tracing_no"],
             "date": row["date"],
             "company_name": row["company_name"],
-            "financial_data": data,
+            "financial_data": compressed_data,
         })
 
     prompt = f"""
