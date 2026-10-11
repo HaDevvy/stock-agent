@@ -115,5 +115,12 @@ def flow_agent(
     analysis.agent = "flow"
 
     return {
-        "analyses": [analysis]
+        "analyses": [analysis],
+        "agent_inputs": [{
+            "agent": "flow",
+            "inputs": {
+                "features": features,
+                "recent_rows": recent_rows,
+            },
+        }],
     }

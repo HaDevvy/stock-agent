@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # -------------------------
     technical_lookback_days: int = 180
 
+    # -------------------------
+    # Industry Agent
+    # -------------------------
+    industry_lookback_days: int = 180
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

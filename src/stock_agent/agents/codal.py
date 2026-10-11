@@ -109,5 +109,11 @@ def codal_agent(state: AgentState):
     analysis.agent = "codal"
 
     return {
-        "analyses": [analysis]
+        "analyses": [analysis],
+        "agent_inputs": [{
+            "agent": "codal",
+            "inputs": {
+                "codal_reports": codal_reports,
+            },
+        }],
     }

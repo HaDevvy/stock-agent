@@ -1,34 +1,47 @@
 nodes:
 
-  technical:
-    handler: stock_agent.agents.technical:technical_agent
+  # technical:
+  #   handler: stock_agent.agents.technical:technical_agent
 
-  flow:
-    handler: stock_agent.agents.flow:flow_agent
-
-  decision:
-    handler: stock_agent.agents.decision:decision_agent
+  # flow:
+  #   handler: stock_agent.agents.flow:flow_agent
 
   codal:
     handler: stock_agent.agents.codal:codal_agent
 
+  # industry:
+  #   handler: stock_agent.agents.industry:industry_agent
+
+  decision:
+    handler: stock_agent.agents.decision:decision_agent
+
+  risk:
+    handler: stock_agent.agents.risk:risk_agent
+
 
 edges:
 
-  - from: START
-    to: technical
+  # - from: START
+  #   to: technical
 
-  - from: START
-    to: flow
+  # - from: START
+  #   to: flow
 
   - from: START
     to: codal
 
+  # - from: START
+  #   to: industry
+
   - from:
-      - technical
-      - flow
+      # - technical
+      # - flow
       - codal
+      # - industry
     to: decision
 
   - from: decision
+    to: risk
+
+  - from: risk
     to: END

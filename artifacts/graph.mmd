@@ -7,13 +7,18 @@ graph TD;
 	__start__([<p>__start__</p>]):::first
 	technical(technical)
 	flow(flow)
+	industry(industry)
 	decision(decision)
+	risk(risk)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> flow;
+	__start__ --> industry;
 	__start__ --> technical;
+	decision --> risk;
 	flow --> decision;
+	industry --> decision;
 	technical --> decision;
-	decision --> __end__;
+	risk --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
 	classDef last fill:#bfb6fc

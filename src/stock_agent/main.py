@@ -11,10 +11,13 @@ result = graph.invoke({
 
 
 for analysis in result["analyses"]:
-    pprint(
-        analysis
-    )
+    pprint(analysis)
 
-pprint(
-    result["decision"]
-)
+print("Proposed decision:")
+pprint(result["decision"])
+
+print("Risk review:")
+pprint(result["risk_review"])
+
+print("Final, risk-checked decision:")
+pprint(result["final_decision"])

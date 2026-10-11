@@ -40,3 +40,15 @@ class FinalDecision(BaseModel):
     )
 
     reason: str
+
+
+class RiskReview(BaseModel):
+    """Independent LLM verification of a proposed directional decision."""
+
+    verdict: Literal["approve", "veto"]
+    risk_level: Literal["low", "medium", "high", "unknown"]
+    confidence: float = Field(ge=0, le=1)
+    reason: str
+    risk_factors: list[str] = Field(default_factory=list)
+    missing_information: list[str] = Field(default_factory=list)
+    suggested_precautions: list[str] = Field(default_factory=list)

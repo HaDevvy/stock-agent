@@ -68,4 +68,11 @@ def technical_agent(
 
     return {
         "analyses": [analysis],
+        "agent_inputs": [{
+            "agent": "technical",
+            "inputs": {
+                "indicators": indicators,
+                "recent_prices": recent_prices,
+            },
+        }],
     }
