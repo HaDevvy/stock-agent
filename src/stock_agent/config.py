@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # -------------------------
     industry_lookback_days: int = 180
 
+    llm_rate_limit_delay: float = 1.0  # seconds
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -1,3 +1,7 @@
+import time
+
+from ..common import compress_json_for_llm
+
 from ..config import settings
 from ..database import get_price_data
 from ..indicators import calculate_technical_indicators
@@ -36,10 +40,10 @@ def technical_agent(
     {state["data_until"]}
 
     Technical indicators:
-    {indicators}
+    {compress_json_for_llm(indicators)}
     
     Recent price candles:
-    {recent_prices}
+    {compress_json_for_llm(recent_prices)}
     
     Analyze the stock based on the provided
     technical indicators and recent price behavior.
@@ -63,6 +67,7 @@ def technical_agent(
     """
 
     analysis = technical_llm.invoke(prompt)
+    time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     analysis.agent = "technical"
 

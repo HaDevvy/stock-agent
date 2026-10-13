@@ -1,9 +1,10 @@
 import json
+import time
 
 from ..llm import llm
 from ..schemas import FinalDecision
 from ..state import AgentState
-
+from ..config import settings
 
 decision_llm = llm.with_structured_output(
     FinalDecision
@@ -55,6 +56,7 @@ def decision_agent(
     """
 
     decision = decision_llm.invoke(prompt)
+    time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     return {
         "decision": decision

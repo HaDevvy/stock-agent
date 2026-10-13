@@ -1,4 +1,7 @@
 import json
+import time
+
+from ..common import compress_json_for_llm
 
 from ..config import settings
 from ..database import get_industry_data
@@ -96,7 +99,7 @@ def industry_agent(
     Calculated industry features:
 
     {json.dumps(
-        features,
+        compress_json_for_llm(features),
         ensure_ascii=False,
         indent=2,
         default=str,
@@ -105,7 +108,7 @@ def industry_agent(
     Recent industry data:
 
     {json.dumps(
-        recent_rows,
+        compress_json_for_llm(recent_rows),
         ensure_ascii=False,
         indent=2,
         default=str,
@@ -272,6 +275,7 @@ def industry_agent(
     analysis = industry_llm.invoke(
         prompt
     )
+    time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     analysis.agent = "industry"
 

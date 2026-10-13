@@ -425,3 +425,50 @@ def get_industry_data(
             dict(row)
             for row in rows
         ]
+
+
+def get_trading_days(
+    symbol: str,
+    start_date: str,
+    end_date: str,
+):
+    """Adjusted daily candles for [start_date, end_date], oldest first.
+
+    Days without trading (volume = 0) are skipped.
+    """
+    query = text("""
+        SELECT
+            date,
+            open,
+            high,
+            low,
+            close,
+            volume
+        FROM closing_prices
+        WHERE ins_code = (
+            SELECT ins_code
+            FROM instruments
+            WHERE symbol = :symbol
+        )
+        AND adjusted_type = 2
+        AND date >= :start_date
+        AND date <= :end_date
+        AND volume > 0
+        AND close > 0
+        ORDER BY date ASC
+    """)
+
+    with engine.connect() as conn:
+        result = conn.execute(
+            query,
+            {
+                "symbol": symbol,
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+        )
+
+        return [
+            dict(row)
+            for row in result.mappings().all()
+        ]

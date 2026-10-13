@@ -1,11 +1,12 @@
 import json
+import time
 
 from ..database import get_codal_data
 from ..codal_file_manager import compact_for_llm, read_codal_data
 from ..llm import llm
 from ..schemas import AgentAnalysis
 from ..state import AgentState
-
+from ..config import settings
 
 codal_llm = llm.with_structured_output(AgentAnalysis)
 
@@ -14,7 +15,7 @@ def codal_agent(state: AgentState):
     rows = get_codal_data(
         symbol=state["symbol"],
         data_until=state["data_until"],
-        limit=2,
+        limit=1,
     )
 
     codal_reports = []
@@ -107,6 +108,7 @@ def codal_agent(state: AgentState):
     """
 
     analysis = codal_llm.invoke(prompt)
+    time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     analysis.agent = "codal"
 

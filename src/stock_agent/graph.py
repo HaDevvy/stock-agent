@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Callable
 
 from langgraph.graph import (
     END,
@@ -27,7 +28,13 @@ def resolve_node_name(
 
 def build_graph(
     config_path: str | Path | None = None,
+    handler_wrapper: Callable[[str, Callable], Callable] | None = None,
 ):
+    """Build the graph from graph.yaml.
+
+    handler_wrapper(node_name, handler) -> handler lets callers (e.g. the
+    backtest) observe every node without changing the agents themselves.
+    """
     config = load_graph_config(
         config_path
     )
@@ -48,6 +55,12 @@ def build_graph(
         handler = load_handler(
             node_config["handler"]
         )
+
+        if handler_wrapper is not None:
+            handler = handler_wrapper(
+                node_name,
+                handler,
+            )
 
         builder.add_node(
             node_name,

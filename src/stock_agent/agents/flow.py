@@ -1,4 +1,8 @@
 import json
+import time
+
+from ..common import compress_json_for_llm
+from ..config import settings
 
 from ..database import get_flow_data
 from ..flow_features import (
@@ -45,7 +49,7 @@ def flow_agent(
     Calculated flow features:
     
     {json.dumps(
-        features,
+        compress_json_for_llm(features),
         ensure_ascii=False,
         indent=2,
     )}
@@ -53,7 +57,7 @@ def flow_agent(
     Recent flow data:
     
     {json.dumps(
-        recent_rows,
+        compress_json_for_llm(recent_rows),
         ensure_ascii=False,
         indent=2,
         default=str,
@@ -111,6 +115,7 @@ def flow_agent(
     analysis = flow_llm.invoke(
         prompt
     )
+    time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     analysis.agent = "flow"
 

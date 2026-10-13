@@ -1,7 +1,10 @@
+import time
+
 from ..llm import llm
 from ..risk_context import build_risk_context, serialize_risk_context
 from ..schemas import FinalDecision, RiskReview
 from ..state import AgentState
+from ..config import settings
 
 
 risk_llm = llm.with_structured_output(RiskReview)
@@ -61,6 +64,7 @@ not the predicted probability of a profitable trade.
 """
 
     review = risk_llm.invoke(prompt)
+    time.sleep(settings.llm_rate_limit_delay)
     decision = state["decision"]
 
     if review.verdict == "veto" and decision.action != "hold":
