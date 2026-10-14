@@ -45,12 +45,23 @@ class AgentState(TypedDict, total=False):
     portfolio: dict[str, Any]
 
     decision: FinalDecision
+
+    decision_history: Annotated[
+        list[FinalDecision],
+        operator.add,
+    ]
+
     risk_review: RiskReview
     final_decision: FinalDecision
 
     # New reviewer fields
     decision_review: DecisionReview
     recheck_count: int
+
+    recheck_completions: Annotated[
+        list[tuple[int, str]],
+        operator.add,
+    ]
 
     # Append-only reviewer history
     review_history: Annotated[

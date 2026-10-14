@@ -37,23 +37,60 @@ class RiskReview(BaseModel):
 
 
 class DecisionReview(BaseModel):
-    """Review the final decision after risk assessment."""
+    verdict: Literal[
+        "approve",
+        "recheck",
+        "escalate",
+    ]
 
-    verdict: Literal["approve", "recheck", "escalate",]
-
-    target_agent: Literal["technical", "flow", "codal", "industry",] | None = None
+    target_agents: list[str] = Field(
+        default_factory=list,
+    )
 
     confidence: float = Field(ge=0, le=1)
 
     reason: str
 
-    recheck_instructions: str | None = None
+    recheck_instructions: dict[str, str] = Field(
+        default_factory=dict,
+    )
 
     @model_validator(mode="after")
     def validate_recheck(self):
         if self.verdict == "recheck":
-            if not self.target_agent:
-                raise ValueError("Recheck requires target_agent")
-            if not self.recheck_instructions:
-                raise ValueError("Recheck requires instructions")
+            if not self.target_agents:
+                raise ValueError(
+                    "At least one target agent is required."
+                )
+
+            if len(self.target_agents) != len(
+                set(self.target_agents)
+            ):
+                raise ValueError(
+                    "Duplicate target agents are not allowed."
+                )
+
+            if (
+                set(self.recheck_instructions)
+                != set(self.target_agents)
+            ):
+                raise ValueError(
+                    "Every target agent must have instructions."
+                )
+
+            if any(
+                not instruction.strip()
+                for instruction in self.recheck_instructions.values()
+            ):
+                raise ValueError(
+                    "Recheck instructions cannot be empty."
+                )
+
+        elif self.target_agents or self.recheck_instructions:
+            raise ValueError(
+                "Only recheck verdicts may specify targets."
+            )
+
         return self
+
+

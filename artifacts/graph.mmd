@@ -7,18 +7,38 @@ graph TD;
 	__start__([<p>__start__</p>]):::first
 	technical(technical)
 	flow(flow)
+	codal(codal)
 	industry(industry)
 	decision(decision)
 	risk(risk)
+	decision_review(decision_review)
+	recheck_industry(recheck_industry)
+	recheck_technical(recheck_technical)
+	recheck_flow(recheck_flow)
+	recheck_codal(recheck_codal)
+	recheck_join(recheck_join)
 	__end__([<p>__end__</p>]):::last
+	__start__ --> codal;
 	__start__ --> flow;
 	__start__ --> industry;
 	__start__ --> technical;
+	codal --> decision;
 	decision --> risk;
+	decision_review -.-> __end__;
+	decision_review -.-> recheck_codal;
+	decision_review -.-> recheck_flow;
+	decision_review -.-> recheck_industry;
+	decision_review -.-> recheck_technical;
 	flow --> decision;
 	industry --> decision;
+	recheck_codal --> recheck_join;
+	recheck_flow --> recheck_join;
+	recheck_industry --> recheck_join;
+	recheck_join -.-> __end__;
+	recheck_join -.-> decision;
+	recheck_technical --> recheck_join;
+	risk --> decision_review;
 	technical --> decision;
-	risk --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
 	classDef last fill:#bfb6fc

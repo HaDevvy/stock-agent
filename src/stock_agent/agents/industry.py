@@ -1,6 +1,8 @@
 import json
 import time
 
+from stock_agent.review_helper import get_recheck_instructions
+
 from ..common import compress_json_for_llm
 
 from ..config import settings
@@ -266,6 +268,28 @@ def industry_agent(
     Do not invent facts. 
     Return output matching the AgentAnalysis schema.
     """
+    instructions = get_recheck_instructions(
+        state,
+        "codal",
+    )
+
+    if instructions:
+        prompt += f"""
+
+        *** RECHECK REQUEST ***
+
+        The final reviewer requested a re-analysis.
+
+        Specific instructions:
+        {instructions}
+
+        Investigate the identified issue using
+        the available evidence.
+
+        Correct your previous conclusion if necessary.
+
+        Do not automatically repeat your previous result.
+        """
 
     analysis = industry_llm.invoke(
         prompt

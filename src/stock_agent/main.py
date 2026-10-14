@@ -21,3 +21,6 @@ pprint(result["risk_review"])
 
 print("Final, risk-checked decision:")
 pprint(result["final_decision"])
+
+pprint("decision review:")
+pprint(result["decision_review"])

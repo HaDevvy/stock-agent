@@ -1,97 +1,179 @@
+
 import json
 import time
 
-
-from ..common import compress_json_for_llm
 from ..llm import llm
 from ..schemas import DecisionReview
 from ..state import AgentState
 from ..config import settings
 
 
-MAX_RECHECKS = 2
+if settings.llm_provider == "openai":
+    reviewer_llm = llm.with_structured_output(
+        DecisionReview
+    )
+elif settings.llm_provider == "google":
+    reviewer_llm = llm.with_structured_output(
+        DecisionReview,
+        method="function_calling",
+    )
+else:
+    raise ValueError(
+        f"Unsupported LLM provider: {settings.llm_provider}"
+    )
 
-reviewer_llm = llm.with_structured_output(DecisionReview)
 
+def decision_review_agent(
+    state: AgentState,
+    *,
+    allowed_agents: tuple[str, ...],
+    max_rechecks: int = 2,
+):
+    analyses = state.get("analyses", [])
 
-def final_reviewer(state: GraphState) -> dict:
-    previous_review = state.get("decision_review")
+    # Extract latest analysis without removing history
+    latest_analyses = {}
 
-    context = {
-        "question": state["question"],
-        "analyses": {
-            name: state[f"{name}_analysis"].model_dump()
-            for name in (
-                "technical", "flow", "codal", "industry"
-            )
-        },
-        "decision": state["final_decision"].model_dump(),
-        "risk": state["risk_review"].model_dump(),
-        "recheck_count": state.get("recheck_count", 0),
-        "previous_review": (
-            previous_review.model_dump()
-            if previous_review else None
-        ),
-    }
+    for analysis in analyses:
+        latest_analyses[analysis.agent] = analysis
 
-    review = reviewer_llm.invoke([
-        (
-            "system",
-            """
-            You are an independent financial decision reviewer.
+    # Only configured specialists that have results
+    available_agents = [
+        name
+        for name in allowed_agents
+        if name in latest_analyses
+    ]
 
-            Evaluate the proposed decision using all agent
-            analyses and the independent risk review.
-
-            Check for:
-            - Contradictory signals or reasoning
-            - Unsupported conclusions
-            - Missing or outdated information
-            - Unresolved risk factors
-
-            Choose:
-            approve: Evidence sufficiently supports the decision
-                     and risk verdict is approve.
-            recheck: A specific agent needs to verify something.
-            escalate: Evidence remains insufficient, the risk
-                      veto is unresolved, or review cannot
-                      produce a reliable decision.
-
-            For recheck:
-            - Select exactly one agent.
-            - Provide specific recheck instructions.
-
-            Never approve a decision with a risk veto.
-            """
-        ),
-        ("human", json.dumps(context, ensure_ascii=False))
-    ])
+    # Preserve previous review context
+    review_history = state.get("review_history", [])
 
     count = state.get("recheck_count", 0)
 
-    # Enforce risk veto outside the LLM
+    context = {
+        "symbol": state["symbol"],
+        "decision_date": state.get("decision_date"),
+        "data_until": state.get("data_until"),
+
+        "available_recheck_agents": available_agents,
+
+        "latest_analyses": {
+            name: item.model_dump()
+            for name, item in latest_analyses.items()
+        },
+
+        "analysis_history": [
+            item.model_dump()
+            for item in analyses
+        ],
+
+        "decision": state["decision"].model_dump(),
+
+        "risk_review": state["risk_review"].model_dump(),
+
+        "final_decision": state["final_decision"].model_dump(),
+
+        "review_history": [
+            item.model_dump()
+            for item in review_history
+        ],
+
+        "recheck_count": count,
+        "max_rechecks": max_rechecks,
+    }
+
+    prompt = f"""
+    You are an independent senior financial decision reviewer.
+
+    Available recheck agents:
+    {json.dumps(available_agents)}
+
+    Analysis and decision context:
+    {json.dumps(context, ensure_ascii=False, indent=2)}
+
+    Review the analyses, decision, risk assessment,
+    and previous review history.
+
+    Select one of these verdicts:
+
+    1. approve
+    The risk-adjusted decision is sufficiently supported.
+
+    2. recheck
+    One or more specialists need to verify important issues.
+
+    You may select MULTIPLE agents simultaneously.
+
+    Set target_agents to the selected agent names.
+
+    For every selected agent, provide separate
+    and specific instructions in recheck_instructions.
+
+    Only select agents from available_recheck_agents.
+
+    Do not request unrelated or unnecessary rechecks.
+
+    3. escalate
+    The decision cannot be approved and the available
+    specialists cannot resolve the uncertainty.
+
+    Important:
+    - Previous analyses are historical evidence.
+    - Use only the latest analysis per agent as the
+    current recommendation.
+    - Compare history to determine whether previous
+    recheck requests were resolved.
+    - Never approve a directional trade with an
+    unresolved risk veto.
+
+    Return a DecisionReview matching the schema.
+    """
+
+    review = reviewer_llm.invoke(prompt)
+
+    time.sleep(settings.llm_rate_limit_delay)
+
+    invalid_agents = (
+        set(review.target_agents)
+        - set(available_agents)
+    )
+
+    if invalid_agents:
+        review = DecisionReview(
+            verdict="escalate",
+            confidence=review.confidence,
+            reason=(
+                "Invalid recheck targets: "
+                f"{sorted(invalid_agents)}"
+            ),
+        )
+
     if (
-        review.verdict == "approve"
-        and state["risk_review"].verdict == "veto"
+        review.verdict == "recheck"
+        and count >= max_rechecks
     ):
         review = DecisionReview(
             verdict="escalate",
             confidence=review.confidence,
-            reason="Risk veto remains unresolved.",
+            reason="Maximum recheck rounds reached.",
         )
 
-    # Enforce maximum number of rechecks
-    if review.verdict == "recheck" and count >= MAX_RECHECKS:
+    if (
+        review.verdict == "approve"
+        and state["risk_review"].verdict == "veto"
+        and state["final_decision"].action != "hold"
+    ):
         review = DecisionReview(
             verdict="escalate",
             confidence=review.confidence,
-            reason="Maximum recheck attempts reached.",
+            reason="Unresolved risk veto.",
         )
 
     return {
         "decision_review": review,
+        "review_history": [review],
         "recheck_count": (
-            count + 1 if review.verdict == "recheck"
+            count + 1
+            if review.verdict == "recheck"
             else count
         ),
     }

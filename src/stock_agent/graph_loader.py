@@ -160,3 +160,100 @@ def validate_graph_config(
             raise ValueError(
                 f"Unknown target node: {target}"
             )
+
+    review = config.get("review")
+
+    if review is None:
+        return
+
+    if not isinstance(review, dict):
+        raise ValueError(
+            "'review' must be a dictionary."
+        )
+
+    required_fields = (
+        "node",
+        "agents",
+        "return_to",
+    )
+
+    for field in required_fields:
+        if field not in review:
+            raise ValueError(
+                f"Missing review configuration: {field}"
+            )
+
+    reviewer_name = review["node"]
+    return_to = review["return_to"]
+    agents = review["agents"]
+
+    if reviewer_name not in node_names:
+        raise ValueError(
+            f"Unknown reviewer node: {reviewer_name}"
+        )
+
+    if return_to not in node_names:
+        raise ValueError(
+            f"Unknown review return node: {return_to}"
+        )
+
+    if (
+        not isinstance(agents, list)
+        or any(
+            not isinstance(name, str) or not name
+            for name in agents
+        )
+    ):
+        raise ValueError(
+            "'review.agents' must be a list of node names."
+        )
+
+    if len(agents) != len(set(agents)):
+        raise ValueError(
+            "Duplicate agents in review.agents."
+        )
+
+    for name in agents:
+        if name not in node_names:
+            raise ValueError(
+                f"Unknown recheck agent: {name}"
+            )
+
+        if name in (reviewer_name, return_to):
+            raise ValueError(
+                f"Invalid specialist recheck target: {name}"
+            )
+
+        generated_name = f"recheck_{name}"
+
+        if generated_name in node_names:
+            raise ValueError(
+                f"Generated node name already exists: "
+                f"{generated_name}"
+            )
+
+    max_rechecks = review.get("max_rechecks", 2)
+
+    if (
+        type(max_rechecks) is not int
+        or max_rechecks < 0
+    ):
+        raise ValueError(
+            "review.max_rechecks must be "
+            "a non-negative integer."
+        )
+
+    # The reviewer must route only through
+    # its generated conditional edges.
+    for edge in edges:
+        sources = edge["from"]
+
+        if not isinstance(sources, list):
+            sources = [sources]
+
+        if reviewer_name in sources:
+            raise ValueError(
+                f"Do not define outgoing edges from "
+                f"'{reviewer_name}' in YAML. "
+                "They are generated automatically."
+            )

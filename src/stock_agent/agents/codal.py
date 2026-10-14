@@ -1,6 +1,8 @@
 import json
 import time
 
+from ..review_helper import get_recheck_instructions
+
 from ..database import get_codal_data
 from ..codal_file_manager import compact_for_llm, read_codal_data
 from ..llm import llm
@@ -117,6 +119,29 @@ def codal_agent(state: AgentState):
     Do not invent facts. 
     Return output matching the AgentAnalysis schema.
     """
+
+    instructions = get_recheck_instructions(
+        state,
+        "codal",
+    )
+
+    if instructions:
+        prompt += f"""
+
+        *** RECHECK REQUEST ***
+
+        The final reviewer requested a re-analysis.
+
+        Specific instructions:
+        {instructions}
+
+        Investigate the identified issue using
+        the available evidence.
+
+        Correct your previous conclusion if necessary.
+
+        Do not automatically repeat your previous result.
+        """
 
     analysis = codal_llm.invoke(prompt)
     time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit

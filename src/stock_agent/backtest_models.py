@@ -169,6 +169,31 @@ class BacktestDay(Base):
     )
 
     backtest: Mapped["Backtest"] = relationship(back_populates="days")
+
+    review_verdict: Mapped[Optional[str]] = mapped_column(
+        String(20)
+    )
+
+    review_confidence: Mapped[Optional[float]] = mapped_column(
+        Float
+    )
+
+    review_reason: Mapped[Optional[str]] = mapped_column(
+        Text
+    )
+
+    # Number of recheck rounds, not number of agents.
+    recheck_rounds: Mapped[int] = mapped_column(
+        Integer,
+        default=0,
+    )
+
+    # Final action permitted by the reviewer.
+    # NULL means no approved action.
+    approved_action: Mapped[Optional[str]] = mapped_column(
+        String(10)
+    )
+
     agent_responses: Mapped[list["BacktestAgentResponse"]] = relationship(
         back_populates="day",
         cascade="all, delete-orphan",
@@ -226,3 +251,8 @@ class BacktestAgentResponse(Base):
     duration_ms: Mapped[Optional[int]] = mapped_column(Integer)
 
     day: Mapped["BacktestDay"] = relationship(back_populates="agent_responses")
+
+    review_round: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )

@@ -19,9 +19,13 @@ def decision_agent(
 ):
     analyses = state["analyses"]
 
+    latest_analyses = {}
+    for analysis in analyses:
+        latest_analyses[analysis.agent] = analysis
+
     analyses_data = [
         analysis.model_dump()
-        for analysis in analyses
+        for analysis in latest_analyses.values()
     ]
 
     prompt = f"""
@@ -73,5 +77,6 @@ def decision_agent(
     time.sleep(settings.llm_rate_limit_delay)  # avoid rate limit
 
     return {
-        "decision": decision
+        "decision": decision,
+        "decision_history": [decision],
     }
