@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     app_name: str = "stock-agent"
     debug: bool = False
 
+    llm_provider: str = "openai"
+
     # -------------------------
     # Database
     # -------------------------

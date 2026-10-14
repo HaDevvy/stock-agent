@@ -6,9 +6,12 @@ from ..schemas import FinalDecision
 from ..state import AgentState
 from ..config import settings
 
-decision_llm = llm.with_structured_output(
-    FinalDecision
-)
+if settings.llm_provider == "openai":
+    decision_llm = llm.with_structured_output(FinalDecision)
+elif settings.llm_provider == "google":
+    decision_llm = llm.with_structured_output(FinalDecision, method="function_calling",)
+else:
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 def decision_agent(
@@ -52,7 +55,18 @@ def decision_agent(
     - hold
     - sell
     
-    Return a structured final decision.
+    ***MANDATORY FINAL DECISION OUTPUT***
+    Evaluate the available agent analyses and relevant evidence, then return a FinalDecision strictly matching the defined schema.
+
+
+    Return structured output with:
+    - action: Exactly one of "buy", "hold", or "sell".
+    - confidence: A float between 0.0 and 1.0.
+    - reason: A concise explanation for this final decision.
+
+    Make the decision based on the strength, consistency, and reliability of the evidence. 
+    Consider conflicting signals and uncertainty. Do not invent facts or treat missing information as certainty. 
+    Ensure the output matches the FinalDecision schema.
     """
 
     decision = decision_llm.invoke(prompt)

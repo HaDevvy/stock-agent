@@ -3,6 +3,8 @@ import datetime as dt
 from decimal import Decimal
 from typing import Any
 
+from stock_agent.schemas import AgentAnalysis
+
 
 def compress_json_for_llm(data: Any) -> str:
     """
@@ -89,3 +91,30 @@ def compress_json_for_llm(data: Any) -> str:
 
     normalized = normalize(data)
     return dumps(compress(normalized))
+
+
+
+def get_latest_analyses(
+    analyses: list[AgentAnalysis],
+) -> dict[str, AgentAnalysis]:
+    """
+    Return the latest analysis for each agent,
+    while preserving the original history.
+    """
+    latest = {}
+
+    for analysis in analyses:
+        latest[analysis.agent] = analysis
+
+    return latest
+
+
+def get_agent_history(
+    analyses: list[AgentAnalysis],
+    agent_name: str,
+) -> list[AgentAnalysis]:
+    return [
+        analysis
+        for analysis in analyses
+        if analysis.agent == agent_name
+    ]

@@ -8,7 +8,12 @@ from ..schemas import AgentAnalysis
 from ..state import AgentState
 from ..config import settings
 
-codal_llm = llm.with_structured_output(AgentAnalysis)
+if settings.llm_provider == "openai":
+    codal_llm = llm.with_structured_output(AgentAnalysis)
+elif settings.llm_provider == "google":
+    codal_llm = llm.with_structured_output(AgentAnalysis, method="function_calling",)
+else:
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 def codal_agent(state: AgentState):
@@ -96,14 +101,20 @@ def codal_agent(state: AgentState):
     - A positive fundamental assessment does not
     necessarily imply an immediate stock price rise.
 
-    Determine:
 
-    signal: bullish / neutral / bearish
-    score: -1 to +1
-    confidence: 0 to 1
-    summary: concise Persian fundamental assessment
-    reasons: most important supporting evidence in Persian
+    ***MANDATORY AGENT ANALYSIS OUTPUT***
+    Analyze the available evidence and return an AgentAnalysis strictly matching the defined schema.
 
+    Return structured output with:
+    - agent: Your identifier string (e.g., "technical", "flow", "codal", or "industry").
+    - signal: Exactly one of "bullish", "neutral", or "bearish".
+    - score: A float between -1.0 and 1.0.
+    - confidence: A float between 0.0 and 1.0.
+    - summary: A brief summary string.
+    - reasons: A list of key supporting bullet points.
+
+    Base your analysis on the available evidence. Ensure the signal, score, confidence, summary, and reasons are consistent. 
+    Do not invent facts. 
     Return output matching the AgentAnalysis schema.
     """
 

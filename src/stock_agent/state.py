@@ -1,34 +1,14 @@
-import operator
-
-from typing import Annotated, TypedDict
-
-from .schemas import AgentAnalysis, FinalDecision
-
-
-class AgentState(TypedDict, total=False):
-    symbol: str
-
-    decision_date: str
-
-    data_until: str
-
-    technical_indicators: dict[
-        str,
-        float | None,
-    ]
-
-    analyses: Annotated[
-        list[AgentAnalysis],
-        operator.add,
-    ]
-
-    decision: FinalDecision
 
 import operator
 
 from typing import Annotated, Any, TypedDict
 
-from .schemas import AgentAnalysis, FinalDecision, RiskReview
+from .schemas import (
+    AgentAnalysis,
+    FinalDecision,
+    RiskReview,
+    DecisionReview,
+)
 
 
 class AgentInput(TypedDict):
@@ -50,20 +30,30 @@ class AgentState(TypedDict, total=False):
         float | None,
     ]
 
+    # Append-only: retains every analysis
     analyses: Annotated[
         list[AgentAnalysis],
         operator.add,
     ]
 
+    # Append-only: retains every evidence record
     agent_inputs: Annotated[
         list[AgentInput],
         operator.add,
     ]
 
-    # Optional portfolio information.
-    # Missing means unknown, not zero holdings.
     portfolio: dict[str, Any]
 
     decision: FinalDecision
     risk_review: RiskReview
     final_decision: FinalDecision
+
+    # New reviewer fields
+    decision_review: DecisionReview
+    recheck_count: int
+
+    # Append-only reviewer history
+    review_history: Annotated[
+        list[DecisionReview],
+        operator.add,
+    ]

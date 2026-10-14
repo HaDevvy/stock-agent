@@ -10,9 +10,12 @@ from ..schemas import AgentAnalysis
 from ..state import AgentState
 
 
-technical_llm = llm.with_structured_output(
-    AgentAnalysis
-)
+if settings.llm_provider == "openai":
+    technical_llm = llm.with_structured_output(AgentAnalysis)
+elif settings.llm_provider == "google":
+    technical_llm = llm.with_structured_output(AgentAnalysis, method="function_calling",)
+else:
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 def technical_agent(
@@ -63,7 +66,21 @@ def technical_agent(
     Do NOT calculate indicators yourself.
     The provided indicator values are already calculated.
     
-    Return a structured analysis.
+
+    ***MANDATORY AGENT ANALYSIS OUTPUT***
+    Analyze the available evidence and return an AgentAnalysis strictly matching the defined schema.
+
+    Return structured output with:
+    - agent: Your identifier string (e.g., "technical", "flow", "codal", or "industry").
+    - signal: Exactly one of "bullish", "neutral", or "bearish".
+    - score: A float between -1.0 and 1.0.
+    - confidence: A float between 0.0 and 1.0.
+    - summary: A brief summary string.
+    - reasons: A list of key supporting bullet points.
+
+    Base your analysis on the available evidence. Ensure the signal, score, confidence, summary, and reasons are consistent. 
+    Do not invent facts. 
+    Return output matching the AgentAnalysis schema.
     """
 
     analysis = technical_llm.invoke(prompt)

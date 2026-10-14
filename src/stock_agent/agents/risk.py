@@ -7,7 +7,12 @@ from ..state import AgentState
 from ..config import settings
 
 
-risk_llm = llm.with_structured_output(RiskReview)
+if settings.llm_provider == "openai":
+    risk_llm = llm.with_structured_output(RiskReview)
+elif settings.llm_provider == "google":
+    risk_llm = llm.with_structured_output(RiskReview, method="function_calling",)
+else:
+    raise ValueError(f"Unsupported LLM provider: {settings.llm_provider}")
 
 
 def risk_agent(state: AgentState) -> dict:
@@ -61,6 +66,24 @@ Return the RiskReview structured output. Write reason, risk_factors,
 missing_information, and suggested_precautions in concise Persian.
 The 'confidence' describes how confident you are in your risk verdict,
 not the predicted probability of a profitable trade.
+
+**MANDATORY RISK REVIEW OUTPUT**
+
+Assess the risk based on the available evidence and return a `RiskReview` strictly matching the defined schema.
+
+- `verdict`: Exactly `"approve"` or `"veto"`.
+- `risk_level`: Exactly `"low"`, `"medium"`, `"high"`, or `"unknown"`.
+- `confidence`: A float between `0.0` and `1.0`, inclusive.
+- `reason`: A concise explanation in Persian.
+- `risk_factors`: A list of identified risks in Persian.
+- `missing_information`: A list of missing or stale information in Persian.
+- `suggested_precautions`: A list of recommended safeguards in Persian.
+
+All fields are mandatory. Use empty lists when no items apply. 
+Never invent facts or treat missing evidence as proof of safety. 
+Base the verdict on the applicable risk criteria and available evidence. 
+Ensure the output conforms to the schema.
+
 """
 
     review = risk_llm.invoke(prompt)
